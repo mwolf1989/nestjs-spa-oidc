@@ -55,7 +55,7 @@ export interface OidcSpaModuleOptions<T extends BaseDecodedAccessToken = BaseDec
    * Function to extract roles from the decoded token.
    * Default: (token) => token.realm_access?.roles || []
    */
-  getRolesFromToken?: (token: T) => string[];
+  getRolesFromDecodedAccessToken?: (token: T) => string[];
 }
 
 /**

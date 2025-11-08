@@ -139,7 +139,7 @@ type CustomToken = z.infer<typeof CustomTokenSchema>;
       issuerUri: 'https://auth.example.com',
       audience: 'my-api',
       decodedAccessTokenSchema: CustomTokenSchema,
-      getRolesFromToken: (token) => token.roles, // Custom role extraction
+      getRolesFromDecodedAccessToken: (token) => token.roles, // Custom role extraction
     }),
   ],
 })
@@ -226,7 +226,7 @@ export class ApiController {
 | `globalGuard` | `boolean` | No | `true` | Apply AuthGuard globally |
 | `globalRolesGuard` | `boolean` | No | `true` | Apply RolesGuard globally |
 | `logger` | `OidcLogger` | No | `ConsoleLogger` | Custom logger instance |
-| `getRolesFromToken` | `function` | No | `(token) => token.realm_access?.roles \|\| []` | Function to extract roles from token |
+| `getRolesFromDecodedAccessToken` | `function` | No | `(token) => token.realm_access?.roles \|\| []` | Function to extract roles from token |
 
 ## API Reference
 

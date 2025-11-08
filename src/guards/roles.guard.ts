@@ -67,8 +67,8 @@ export class RolesGuard implements CanActivate {
     }
 
     // Get user roles from the token using the configured function or default
-    const userRoles = this.options.getRolesFromToken
-      ? this.options.getRolesFromToken(user)
+    const userRoles = this.options.getRolesFromDecodedAccessToken
+      ? this.options.getRolesFromDecodedAccessToken(user)
       : (user as any).realm_access?.roles || [];
 
     this.logger.debug?.(

@@ -187,14 +187,14 @@ export class OidcService<T extends BaseDecodedAccessToken = BaseDecodedAccessTok
 
   /**
    * Extract user roles from the decoded token.
-   * Uses the custom getRolesFromToken function if provided, otherwise uses the default.
+   * Uses the custom getRolesFromDecodedAccessToken function if provided, otherwise uses the default.
    *
    * @param token - The decoded access token
    * @returns Array of user roles
    */
   getUserRoles(token: T): string[] {
-    if (this.options.getRolesFromToken) {
-      return this.options.getRolesFromToken(token);
+    if (this.options.getRolesFromDecodedAccessToken) {
+      return this.options.getRolesFromDecodedAccessToken(token);
     }
     // Default implementation for tokens with realm_access
     return (token as any).realm_access?.roles || [];
