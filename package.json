@@ -38,7 +38,7 @@
   "devDependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.1.9",
-    "@types/node": "^22.10.7",
+    "@types/node": "^24.10.1",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
