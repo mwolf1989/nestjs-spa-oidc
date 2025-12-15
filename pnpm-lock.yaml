@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       oidc-spa:
-        specifier: ^8.6.16
-        version: 8.6.16(rxjs@7.8.2)
+        specifier: ^8.6.17
+        version: 8.6.17(rxjs@7.8.2)
     devDependencies:
       '@nestjs/common':
         specifier: ^11.1.9
@@ -414,8 +414,8 @@ packages:
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
-  oidc-spa@8.6.16:
-    resolution: {integrity: sha512-4e2yLWmnZEWMJ8Yjk42vUkW7Pp6lMPkj+xSbz/hBqiNNJon6IhIyFIYP4mfXlk5XmNGeW9fbki0V53mfmBCIKw==}
+  oidc-spa@8.6.17:
+    resolution: {integrity: sha512-jNEwyGPeJZjHgFtXCwa2S350z9Nd8zIS4yYUcpbCAiHo/YU1ltRCBAm7g+90zqtfaV0UMTzUpjue2HeQvLtsJQ==}
     peerDependencies:
       '@angular/common': '*'
       '@angular/core': '*'
@@ -915,7 +915,7 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  oidc-spa@8.6.16(rxjs@7.8.2):
+  oidc-spa@8.6.17(rxjs@7.8.2):
     optionalDependencies:
       rxjs: 7.8.2
 
