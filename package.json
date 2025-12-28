@@ -23,8 +23,12 @@
     "jwt",
     "oauth2"
   ],
-  "author": "",
+  "author": "Marcel Wolf",
   "license": "MIT",
+  "homepage": "https://github.com/mwolf1989/nestjs-spa-oidc#readme",
+  "bugs": {
+    "url": "https://github.com/mwolf1989/nestjs-spa-oidc/issues"
+  },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
@@ -50,7 +54,7 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/mwolf1989/nestjs-spa-oidc.git"
   },
   "publishConfig": {
     "access": "public"
