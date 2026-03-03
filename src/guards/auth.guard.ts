@@ -41,10 +41,7 @@ export class AuthGuard implements CanActivate {
     const className = context.getClass().name;
     const handlerName = handler.name;
 
-    this.logger.debug?.(
-      `Checking authentication for ${className}.${handlerName}`,
-      AuthGuard.name,
-    );
+    this.logger.debug?.(`Checking authentication for ${className}.${handlerName}`, AuthGuard.name);
 
     // Check if the route is marked as public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -83,10 +80,7 @@ export class AuthGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      this.logger.debug?.(
-        `Token validation failed: ${(error as Error).message}`,
-        AuthGuard.name,
-      );
+      this.logger.debug?.(`Token validation failed: ${(error as Error).message}`, AuthGuard.name);
       if (error instanceof UnauthorizedException) {
         throw error;
       }
@@ -94,4 +88,3 @@ export class AuthGuard implements CanActivate {
     }
   }
 }
-

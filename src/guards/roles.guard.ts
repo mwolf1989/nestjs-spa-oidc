@@ -71,10 +71,7 @@ export class RolesGuard implements CanActivate {
       ? this.options.getRolesFromDecodedAccessToken(user)
       : (user as any).realm_access?.roles || [];
 
-    this.logger.debug?.(
-      `User ${user.sub} has roles: ${userRoles.join(', ')}`,
-      RolesGuard.name,
-    );
+    this.logger.debug?.(`User ${user.sub} has roles: ${userRoles.join(', ')}`, RolesGuard.name);
 
     // Check if user has at least one of the required roles
     const hasRole = requiredRoles.some((role) => userRoles.includes(role));
@@ -89,12 +86,8 @@ export class RolesGuard implements CanActivate {
       );
     }
 
-    this.logger.debug?.(
-      `User ${user.sub} has required role, allowing access`,
-      RolesGuard.name,
-    );
+    this.logger.debug?.(`User ${user.sub} has required role, allowing access`, RolesGuard.name);
 
     return true;
   }
 }
-
