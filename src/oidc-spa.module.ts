@@ -1,5 +1,12 @@
-import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import {
+  CanActivate,
+  DynamicModule,
+  ExecutionContext,
+  Module,
+  Provider,
+  Type,
+} from '@nestjs/common';
+import { APP_GUARD, Reflector } from '@nestjs/core';
 import {
   OidcSpaModuleOptions,
   OidcSpaModuleAsyncOptions,
@@ -33,6 +40,15 @@ class ConsoleLogger implements OidcLogger {
     if (process.env.NODE_ENV === 'development') {
       console.debug(`[${context || 'OidcSpa'}] ${message}`);
     }
+  }
+}
+
+/**
+ * No-op guard used when global guard registration is disabled via async options.
+ */
+class NoopGuard implements CanActivate {
+  canActivate(_context: ExecutionContext): boolean {
+    return true;
   }
 }
 
@@ -116,32 +132,32 @@ export class OidcSpaModule {
     const providers: Provider[] = [
       ...this.createAsyncProviders(options),
       OidcService,
+      {
+        provide: APP_GUARD,
+        useFactory: (
+          moduleOptions: OidcSpaModuleOptions<T>,
+          oidcService: OidcService,
+          reflector: Reflector,
+          logger: OidcLogger,
+        ) =>
+          moduleOptions.globalGuard === false
+            ? new NoopGuard()
+            : new AuthGuard(oidcService, reflector, logger),
+        inject: [OIDC_SPA_MODULE_OPTIONS, OidcService, Reflector, OIDC_LOGGER],
+      },
+      {
+        provide: APP_GUARD,
+        useFactory: (
+          moduleOptions: OidcSpaModuleOptions<T>,
+          reflector: Reflector,
+          logger: OidcLogger,
+        ) =>
+          moduleOptions.globalRolesGuard === false
+            ? new NoopGuard()
+            : new RolesGuard(reflector, logger, moduleOptions),
+        inject: [OIDC_SPA_MODULE_OPTIONS, Reflector, OIDC_LOGGER],
+      },
     ];
-
-    // We need to determine if guards should be global after options are resolved
-    // For async config, we'll add them conditionally in a factory
-    providers.push({
-      provide: 'OIDC_GUARDS_SETUP',
-      useFactory: (moduleOptions: OidcSpaModuleOptions<T>) => {
-        // This is just a marker to ensure guards are set up
-        // The actual guards are added below
-        return moduleOptions;
-      },
-      inject: [OIDC_SPA_MODULE_OPTIONS],
-    });
-
-    // Add guards - they will check the options internally
-    // For async config, we always add them but they can be disabled via options
-    providers.push(
-      {
-        provide: APP_GUARD,
-        useClass: AuthGuard,
-      },
-      {
-        provide: APP_GUARD,
-        useClass: RolesGuard,
-      },
-    );
 
     return {
       module: OidcSpaModule,
@@ -205,4 +221,3 @@ export class OidcSpaModule {
     ];
   }
 }
-
