@@ -1,6 +1,6 @@
 {
   "name": "@mwolf1989/nestjs-spa-oidc",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "A reusable NestJS module for OIDC (OpenID Connect) authentication in Single Page Applications",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
