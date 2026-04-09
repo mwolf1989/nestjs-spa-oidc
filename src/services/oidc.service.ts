@@ -1,7 +1,10 @@
 import { Injectable, UnauthorizedException, OnModuleInit, Inject } from '@nestjs/common';
 import { createOidcBackend } from 'oidc-spa/backend';
 import type { ResultOfAccessTokenVerify } from 'oidc-spa/backend';
-import { BaseDecodedAccessToken, DefaultDecodedAccessTokenSchema } from '../types/decoded-access-token.type';
+import {
+  BaseDecodedAccessToken,
+  DefaultDecodedAccessTokenSchema,
+} from '../types/decoded-access-token.type';
 import { OidcSpaModuleOptions, OidcLogger } from '../types/module-options.type';
 import { OIDC_SPA_MODULE_OPTIONS, OIDC_LOGGER } from '../constants';
 
@@ -10,9 +13,9 @@ import { OIDC_SPA_MODULE_OPTIONS, OIDC_LOGGER } from '../constants';
  * This service initializes the OIDC backend and provides methods to decode and validate access tokens.
  */
 @Injectable()
-export class OidcService<T extends BaseDecodedAccessToken = BaseDecodedAccessToken>
-  implements OnModuleInit
-{
+export class OidcService<
+  T extends BaseDecodedAccessToken = BaseDecodedAccessToken,
+> implements OnModuleInit {
   private decodeAccessTokenFn:
     | ((params: {
         authorizationHeaderValue: string | undefined;
@@ -52,7 +55,8 @@ export class OidcService<T extends BaseDecodedAccessToken = BaseDecodedAccessTok
     try {
       const oidcBackend = await createOidcBackend({
         issuerUri: this.options.issuerUri,
-        decodedAccessTokenSchema: (this.options.decodedAccessTokenSchema || DefaultDecodedAccessTokenSchema) as any,
+        decodedAccessTokenSchema: (this.options.decodedAccessTokenSchema ||
+          DefaultDecodedAccessTokenSchema) as any,
       });
 
       const verifyAndDecodeAccessToken = oidcBackend.verifyAndDecodeAccessToken.bind(
@@ -82,10 +86,7 @@ export class OidcService<T extends BaseDecodedAccessToken = BaseDecodedAccessTok
         });
 
         if (!result.isValid) {
-          this.logger.debug?.(
-            `Token validation failed: ${result.errorCase}`,
-            OidcService.name,
-          );
+          this.logger.debug?.(`Token validation failed: ${result.errorCase}`, OidcService.name);
 
           switch (result.errorCase) {
             case 'does not respect schema':
@@ -211,4 +212,3 @@ export class OidcService<T extends BaseDecodedAccessToken = BaseDecodedAccessTok
     return this.getUserRoles(token).includes(role);
   }
 }
-

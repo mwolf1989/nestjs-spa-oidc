@@ -22,14 +22,11 @@ import { BaseDecodedAccessToken } from '../types/decoded-access-token.type';
  * }
  * ```
  */
-export const User = createParamDecorator(
-  (data: string | undefined, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest<{
-      user?: BaseDecodedAccessToken;
-    }>();
-    const user = request.user;
+export const User = createParamDecorator((data: string | undefined, ctx: ExecutionContext) => {
+  const request = ctx.switchToHttp().getRequest<{
+    user?: BaseDecodedAccessToken;
+  }>();
+  const user = request.user;
 
-    return data ? user?.[data as keyof BaseDecodedAccessToken] : user;
-  },
-);
-
+  return data ? user?.[data as keyof BaseDecodedAccessToken] : user;
+});

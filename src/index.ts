@@ -34,4 +34,3 @@ export type {
 
 // Constants
 export { OIDC_SPA_MODULE_OPTIONS, OIDC_LOGGER } from './constants';
-

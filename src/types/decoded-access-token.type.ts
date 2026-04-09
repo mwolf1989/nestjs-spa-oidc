@@ -33,4 +33,3 @@ export interface BaseDecodedAccessToken {
   aud: string | string[];
   [key: string]: unknown;
 }
-

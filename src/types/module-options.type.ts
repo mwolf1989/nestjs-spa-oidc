@@ -93,4 +93,3 @@ export interface OidcSpaModuleAsyncOptions<
    */
   useClass?: Type<OidcSpaModuleOptionsFactory<T>>;
 }
-
