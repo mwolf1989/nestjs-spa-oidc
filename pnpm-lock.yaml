@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       oidc-spa:
-        specifier: ^8.7.4
-        version: 8.7.4(rxjs@7.8.2)
+        specifier: ^10.2.3
+        version: 10.2.3(rxjs@7.8.2)
     devDependencies:
       '@nestjs/common':
         specifier: ^11.1.13
@@ -537,12 +537,13 @@ packages:
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
-  oidc-spa@8.7.4:
-    resolution: {integrity: sha512-+GKiMdFpeNryNymO71MJdQQq0xiwygmPjNpVojctCBamDYOoZL79Lfr239PwOf52/3g11IE3d5GMCuLPy8IAJQ==}
+  oidc-spa@10.2.3:
+    resolution: {integrity: sha512-rbxDM5Ss1DLhXpjR35S6eGoI9o3+S8Z7gQVEn2yg4t11iM0nDI/XXxu+NDhuKKDwZaqCeeJYNZnUEc6rXG2lKQ==}
     peerDependencies:
       '@angular/common': '*'
       '@angular/core': '*'
       '@angular/router': '*'
+      '@nuxt/kit': '*'
       '@tanstack/react-router': '*'
       '@tanstack/react-start': '*'
       '@types/react': '*'
@@ -554,6 +555,8 @@ packages:
       '@angular/core':
         optional: true
       '@angular/router':
+        optional: true
+      '@nuxt/kit':
         optional: true
       '@tanstack/react-router':
         optional: true
@@ -1088,7 +1091,7 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  oidc-spa@8.7.4(rxjs@7.8.2):
+  oidc-spa@10.2.3(rxjs@7.8.2):
     optionalDependencies:
       rxjs: 7.8.2
 

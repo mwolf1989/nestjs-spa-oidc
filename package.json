@@ -38,7 +38,7 @@
     "zod": "^4.0.0"
   },
   "dependencies": {
-    "oidc-spa": "^8.7.4"
+    "oidc-spa": "^10.2.3"
   },
   "devDependencies": {
     "@nestjs/common": "^11.1.13",
