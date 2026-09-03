@@ -1,11 +1,13 @@
 import {
   CanActivate,
   ExecutionContext,
+  HttpException,
   Injectable,
   UnauthorizedException,
   Inject,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import type { AnyRequest } from 'oidc-spa/server';
 import { OidcService } from '../services/oidc.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { BaseDecodedAccessToken } from '../types/decoded-access-token.type';
@@ -15,12 +17,9 @@ import { OIDC_LOGGER } from '../constants';
 /**
  * Minimal request interface for platform-agnostic support
  */
-interface RequestWithUser {
-  headers: {
-    authorization?: string;
-  };
+type RequestWithUser = AnyRequest & {
   user?: BaseDecodedAccessToken;
-}
+};
 
 /**
  * Authentication guard that validates OIDC/JWT tokens.
@@ -57,18 +56,10 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
-    const authorizationHeader = request.headers.authorization;
-
-    if (!authorizationHeader) {
-      this.logger.debug?.('No authorization header provided', AuthGuard.name);
-      throw new UnauthorizedException('No authorization header provided');
-    }
-
-    this.logger.debug?.('Authorization header found, validating token', AuthGuard.name);
+    this.logger.debug?.('Validating request authentication context', AuthGuard.name);
 
     try {
-      // Decode and validate the access token
-      const decodedToken = await this.oidcService.decodeAccessToken(authorizationHeader);
+      const decodedToken = await this.oidcService.decodeRequest(request);
 
       this.logger.debug?.(
         `Token validated successfully for user: ${decodedToken.sub}`,
@@ -81,7 +72,7 @@ export class AuthGuard implements CanActivate {
       return true;
     } catch (error) {
       this.logger.debug?.(`Token validation failed: ${(error as Error).message}`, AuthGuard.name);
-      if (error instanceof UnauthorizedException) {
+      if (error instanceof HttpException) {
         throw error;
       }
       throw new UnauthorizedException('Invalid authentication token');

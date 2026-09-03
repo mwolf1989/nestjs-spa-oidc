@@ -1,5 +1,17 @@
-import { Injectable, UnauthorizedException, OnModuleInit, Inject } from '@nestjs/common';
-import { oidcSpa } from 'oidc-spa/server';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  OnModuleInit,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  extractRequestAuthContext,
+  oidcSpa,
+  type AnyRequest,
+  type ValidateAndDecodeAccessToken,
+} from 'oidc-spa/server';
 import {
   BaseDecodedAccessToken,
   DefaultDecodedAccessTokenSchema,
@@ -15,12 +27,7 @@ import { OIDC_SPA_MODULE_OPTIONS, OIDC_LOGGER } from '../constants';
 export class OidcService<
   T extends BaseDecodedAccessToken = BaseDecodedAccessToken,
 > implements OnModuleInit {
-  private decodeAccessTokenFn:
-    | ((params: {
-        authorizationHeaderValue: string | undefined;
-        requiredRole?: string;
-      }) => Promise<T>)
-    | null = null;
+  private validateAndDecodeAccessTokenFn: ValidateAndDecodeAccessToken<T> | null = null;
 
   constructor(
     @Inject(OIDC_SPA_MODULE_OPTIONS)
@@ -65,68 +72,7 @@ export class OidcService<
         expectedAudience: this.options.audience,
       });
 
-      this.decodeAccessTokenFn = async (params: {
-        authorizationHeaderValue: string | undefined;
-        requiredRole?: string;
-      }): Promise<T> => {
-        const { authorizationHeaderValue, requiredRole } = params;
-
-        this.logger.debug?.('Decoding access token', OidcService.name);
-
-        if (!authorizationHeaderValue) {
-          this.logger.debug?.('No authorization header provided', OidcService.name);
-          throw new UnauthorizedException('No authorization header provided');
-        }
-
-        const [scheme, accessToken, ...additionalParts] = authorizationHeaderValue.split(' ');
-
-        if (scheme.toLowerCase() !== 'bearer' || !accessToken || additionalParts.length > 0) {
-          this.logger.debug?.('Invalid authorization header scheme', OidcService.name);
-          throw new UnauthorizedException('Invalid authorization header');
-        }
-
-        this.logger.debug?.('Verifying token signature and expiration', OidcService.name);
-
-        const result = await validateAndDecodeAccessToken({
-          scheme: 'Bearer',
-          accessToken,
-          rejectIfAccessTokenDPoPBound: true,
-        });
-
-        if (!result.isSuccess) {
-          this.logger.debug?.(
-            `Token validation failed: ${result.debugErrorMessage}`,
-            OidcService.name,
-          );
-          throw new UnauthorizedException('Invalid or expired token');
-        }
-
-        const { decodedAccessToken } = result;
-
-        this.logger.debug?.(
-          `Token decoded successfully for user: ${decodedAccessToken.sub}`,
-          OidcService.name,
-        );
-
-        // Check required role if specified
-        if (requiredRole !== undefined) {
-          const roles = this.getUserRoles(decodedAccessToken);
-          this.logger.debug?.(
-            `Checking required role: ${requiredRole}, user roles: ${roles.join(', ')}`,
-            OidcService.name,
-          );
-
-          if (!roles.includes(requiredRole)) {
-            this.logger.debug?.(
-              `User does not have required role: ${requiredRole}`,
-              OidcService.name,
-            );
-            throw new UnauthorizedException(`User does not have required role: ${requiredRole}`);
-          }
-        }
-
-        return decodedAccessToken;
-      };
+      this.validateAndDecodeAccessTokenFn = validateAndDecodeAccessToken;
 
       this.logger.log(
         `OIDC backend initialized successfully with issuer: ${this.options.issuerUri}`,
@@ -143,7 +89,36 @@ export class OidcService<
   }
 
   /**
-   * Decode and validate an access token from the Authorization header.
+   * Decode and validate an access token from an Express, Fastify, Fetch, Hono,
+   * or unified request. Passing the complete request enables DPoP validation.
+   *
+   * @param request - Request representation supported by oidc-spa/server
+   * @param requiredRole - Optional role that the user must have
+   * @returns The decoded access token
+   */
+  async decodeRequest(request: AnyRequest, requiredRole?: string): Promise<T> {
+    const requestAuthContext = extractRequestAuthContext({
+      request,
+      trustProxy: this.options.trustProxy ?? true,
+    });
+
+    if (!requestAuthContext) {
+      this.logger.debug?.('No authorization header provided', OidcService.name);
+      throw new UnauthorizedException('No authorization header provided');
+    }
+
+    if (!requestAuthContext.isWellFormed) {
+      this.logger.debug?.(requestAuthContext.debugErrorMessage, OidcService.name);
+      throw new BadRequestException('Malformed authentication request');
+    }
+
+    return this.validateAccessToken(requestAuthContext.accessTokenAndMetadata, requiredRole);
+  }
+
+  /**
+   * Decode and validate a Bearer token from the Authorization header.
+   * Prefer decodeRequest() when the full request is available so DPoP proofs
+   * and request metadata can be validated.
    *
    * @param authorizationHeaderValue - The value of the Authorization header (e.g., "Bearer <token>")
    * @param requiredRole - Optional role that the user must have
@@ -154,14 +129,69 @@ export class OidcService<
     authorizationHeaderValue: string | undefined,
     requiredRole?: string,
   ): Promise<T> {
-    if (!this.decodeAccessTokenFn) {
+    if (!authorizationHeaderValue) {
+      this.logger.debug?.('No authorization header provided', OidcService.name);
+      throw new UnauthorizedException('No authorization header provided');
+    }
+
+    const [scheme, accessToken, ...additionalParts] = authorizationHeaderValue.split(' ');
+
+    if (scheme.toLowerCase() !== 'bearer' || !accessToken || additionalParts.length > 0) {
+      this.logger.debug?.('Invalid authorization header scheme', OidcService.name);
+      throw new UnauthorizedException('Invalid authorization header');
+    }
+
+    return this.validateAccessToken(
+      {
+        scheme: 'Bearer',
+        accessToken,
+        rejectIfAccessTokenDPoPBound: true,
+      },
+      requiredRole,
+    );
+  }
+
+  private async validateAccessToken(
+    accessTokenAndMetadata: Parameters<ValidateAndDecodeAccessToken<T>>[0],
+    requiredRole?: string,
+  ): Promise<T> {
+    if (!this.validateAndDecodeAccessTokenFn) {
       throw new Error('OIDC service not initialized');
     }
 
-    return this.decodeAccessTokenFn({
-      authorizationHeaderValue,
-      requiredRole,
-    });
+    this.logger.debug?.(
+      `Validating ${accessTokenAndMetadata.scheme} access token`,
+      OidcService.name,
+    );
+
+    const result = await this.validateAndDecodeAccessTokenFn(accessTokenAndMetadata);
+
+    if (!result.isSuccess) {
+      this.logger.debug?.(`Token validation failed: ${result.debugErrorMessage}`, OidcService.name);
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+
+    const { decodedAccessToken } = result;
+
+    this.logger.debug?.(
+      `Token decoded successfully for user: ${decodedAccessToken.sub}`,
+      OidcService.name,
+    );
+
+    if (requiredRole !== undefined) {
+      const roles = this.getUserRoles(decodedAccessToken);
+      this.logger.debug?.(
+        `Checking required role: ${requiredRole}, user roles: ${roles.join(', ')}`,
+        OidcService.name,
+      );
+
+      if (!roles.includes(requiredRole)) {
+        this.logger.debug?.(`User does not have required role: ${requiredRole}`, OidcService.name);
+        throw new ForbiddenException(`User does not have required role: ${requiredRole}`);
+      }
+    }
+
+    return decodedAccessToken;
   }
 
   /**
