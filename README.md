@@ -23,6 +23,15 @@ npm install @mwolf1989/nestjs-spa-oidc
 yarn add @mwolf1989/nestjs-spa-oidc
 ```
 
+## Compatibility
+
+| NestJS | Node.js | Status               |
+| ------ | ------- | -------------------- |
+| 11.x   | >=20.19 | Supported and tested |
+| 12.x   | >=20.19 | Supported and tested |
+
+NestJS 12 ships its core packages as ESM. This package remains compatible with both CommonJS and ESM consumers by following the [NestJS 12 Node.js runtime requirement](https://docs.nestjs.com/migration-guide#nodejs-requirements).
+
 ## Quick Start
 
 ### 1. Basic Configuration
@@ -263,4 +272,3 @@ MIT
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-

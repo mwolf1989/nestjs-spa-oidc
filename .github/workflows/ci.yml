@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compatibility:
+    name: NestJS ${{ matrix.nest }} / Node 20.19
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nest: 11
+            common: 11.1.27
+            core: 11.1.18
+          - nest: 12
+            common: 12.0.1
+            core: 12.0.1
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20.19.0
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - name: Select NestJS version
+        run: pnpm add --save-dev --save-exact @nestjs/common@${{ matrix.common }} @nestjs/core@${{ matrix.core }}
+      - run: pnpm run check
+      - name: Verify CommonJS and ESM consumers
+        run: |
+          node -e "const api = require('./dist'); if (!api.OidcSpaModule) process.exit(1)"
+          node --input-type=module -e "const api = await import('./dist/index.js'); if (!api.OidcSpaModule) process.exit(1)"
