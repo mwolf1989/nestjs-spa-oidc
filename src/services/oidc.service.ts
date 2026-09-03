@@ -1,6 +1,5 @@
 import { Injectable, UnauthorizedException, OnModuleInit, Inject } from '@nestjs/common';
-import { createOidcBackend } from 'oidc-spa/backend';
-import type { ResultOfAccessTokenVerify } from 'oidc-spa/backend';
+import { oidcSpa } from 'oidc-spa/server';
 import {
   BaseDecodedAccessToken,
   DefaultDecodedAccessTokenSchema,
@@ -9,7 +8,7 @@ import { OidcSpaModuleOptions, OidcLogger } from '../types/module-options.type';
 import { OIDC_SPA_MODULE_OPTIONS, OIDC_LOGGER } from '../constants';
 
 /**
- * Service responsible for OIDC token validation using the oidc-spa/backend library.
+ * Service responsible for OIDC token validation using the oidc-spa/server library.
  * This service initializes the OIDC backend and provides methods to decode and validate access tokens.
  */
 @Injectable()
@@ -53,15 +52,18 @@ export class OidcService<
     );
 
     try {
-      const oidcBackend = await createOidcBackend({
-        issuerUri: this.options.issuerUri,
-        decodedAccessTokenSchema: (this.options.decodedAccessTokenSchema ||
-          DefaultDecodedAccessTokenSchema) as any,
-      });
+      const { bootstrapAuth, validateAndDecodeAccessToken } = oidcSpa
+        .withExpectedDecodedAccessTokenShape<T>({
+          decodedAccessTokenSchema: (this.options.decodedAccessTokenSchema ||
+            DefaultDecodedAccessTokenSchema) as any,
+        })
+        .createUtils();
 
-      const verifyAndDecodeAccessToken = oidcBackend.verifyAndDecodeAccessToken.bind(
-        oidcBackend,
-      ) as (params: { accessToken: string }) => Promise<ResultOfAccessTokenVerify<T>>;
+      await bootstrapAuth({
+        implementation: 'real',
+        issuerUri: this.options.issuerUri,
+        expectedAudience: this.options.audience,
+      });
 
       this.decodeAccessTokenFn = async (params: {
         authorizationHeaderValue: string | undefined;
@@ -76,27 +78,27 @@ export class OidcService<
           throw new UnauthorizedException('No authorization header provided');
         }
 
-        // Extract the token from "Bearer <token>"
-        const accessToken = authorizationHeaderValue.replace(/^Bearer /, '');
+        const [scheme, accessToken, ...additionalParts] = authorizationHeaderValue.split(' ');
+
+        if (scheme.toLowerCase() !== 'bearer' || !accessToken || additionalParts.length > 0) {
+          this.logger.debug?.('Invalid authorization header scheme', OidcService.name);
+          throw new UnauthorizedException('Invalid authorization header');
+        }
 
         this.logger.debug?.('Verifying token signature and expiration', OidcService.name);
 
-        const result: ResultOfAccessTokenVerify<T> = await verifyAndDecodeAccessToken({
+        const result = await validateAndDecodeAccessToken({
+          scheme: 'Bearer',
           accessToken,
+          rejectIfAccessTokenDPoPBound: true,
         });
 
-        if (!result.isValid) {
-          this.logger.debug?.(`Token validation failed: ${result.errorCase}`, OidcService.name);
-
-          switch (result.errorCase) {
-            case 'does not respect schema':
-              throw new Error(
-                `The access token does not respect the schema: ${result.errorMessage}`,
-              );
-            case 'invalid signature':
-            case 'expired':
-              throw new UnauthorizedException('Invalid or expired token');
-          }
+        if (!result.isSuccess) {
+          this.logger.debug?.(
+            `Token validation failed: ${result.debugErrorMessage}`,
+            OidcService.name,
+          );
+          throw new UnauthorizedException('Invalid or expired token');
         }
 
         const { decodedAccessToken } = result;
@@ -121,20 +123,6 @@ export class OidcService<
             );
             throw new UnauthorizedException(`User does not have required role: ${requiredRole}`);
           }
-        }
-
-        // Validate audience
-        const { aud } = decodedAccessToken;
-        const audArray = typeof aud === 'string' ? [aud] : aud;
-
-        this.logger.debug?.(
-          `Validating token audience: ${audArray.join(', ')} against expected: ${this.options.audience}`,
-          OidcService.name,
-        );
-
-        if (!audArray.includes(this.options.audience)) {
-          this.logger.debug?.('Invalid token audience', OidcService.name);
-          throw new UnauthorizedException('Invalid token audience');
         }
 
         return decodedAccessToken;
