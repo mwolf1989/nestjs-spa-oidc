@@ -45,11 +45,14 @@ import { OidcSpaModule } from '@mwolf1989/nestjs-spa-oidc';
     OidcSpaModule.forRoot({
       issuerUri: 'https://auth.example.com/realms/myrealm',
       audience: 'account',
+      trustProxy: true,
     }),
   ],
 })
 export class AppModule {}
 ```
+
+The global authentication guard passes the complete HTTP request to `oidc-spa/server`, enabling both Bearer and DPoP validation. `trustProxy` defaults to `true`; set it to `false` when the application is reached directly without a trusted reverse proxy.
 
 ### 2. Async Configuration with ConfigService
 
@@ -231,6 +234,7 @@ export class ApiController {
 |--------|------|----------|---------|-------------|
 | `issuerUri` | `string` | Yes | - | OIDC issuer URI (e.g., `https://auth.example.com/realms/myrealm`) |
 | `audience` | `string` | Yes | - | Expected audience for the access token |
+| `trustProxy` | `boolean` | No | `true` | Trust forwarded host/protocol headers when validating DPoP requests |
 | `decodedAccessTokenSchema` | `ZodType` | No | `DefaultDecodedAccessTokenSchema` | Zod schema for token validation |
 | `globalGuard` | `boolean` | No | `true` | Apply AuthGuard globally |
 | `globalRolesGuard` | `boolean` | No | `true` | Apply RolesGuard globally |
@@ -253,7 +257,8 @@ export class ApiController {
 ### Services
 
 - **`OidcService`** - Core service for token validation and user info extraction
-  - `decodeAccessToken(authHeader, requiredRole?)` - Decode and validate token
+  - `decodeRequest(request, requiredRole?)` - Decode and validate Bearer or DPoP authentication from a complete request
+  - `decodeAccessToken(authHeader, requiredRole?)` - Decode and validate a Bearer token when only the header is available
   - `getUserId(token)` - Extract user ID from token
   - `getUserRoles(token)` - Extract roles from token
   - `hasRole(token, role)` - Check if user has specific role

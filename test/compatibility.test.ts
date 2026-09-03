@@ -2,8 +2,14 @@ import 'reflect-metadata';
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ExecutionContext, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ExecutionContext,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import type { AnyRequest, ValidateAndDecodeAccessToken } from 'oidc-spa/server';
 import {
   AuthGuard,
   OidcService,
@@ -54,7 +60,7 @@ test('AuthGuard skips public handlers', async () => {
   Public()(handler);
 
   const oidcService = {
-    decodeAccessToken: () => {
+    decodeRequest: () => {
       throw new Error('public handlers must not decode a token');
     },
   } as unknown as OidcService;
@@ -75,8 +81,8 @@ test('AuthGuard validates a bearer token and attaches the decoded user', async (
     headers: { authorization: 'Bearer access-token' },
   };
   const oidcService = {
-    decodeAccessToken: async (authorizationHeader: string) => {
-      assert.equal(authorizationHeader, 'Bearer access-token');
+    decodeRequest: async (requestToDecode: unknown) => {
+      assert.equal(requestToDecode, request);
       return token;
     },
   } as unknown as OidcService;
@@ -87,13 +93,91 @@ test('AuthGuard validates a bearer token and attaches the decoded user', async (
 });
 
 test('AuthGuard rejects requests without an authorization header', async () => {
-  const oidcService = {} as OidcService;
+  const oidcService = {
+    decodeRequest: async () => {
+      throw new UnauthorizedException('No authorization header provided');
+    },
+  } as unknown as OidcService;
   const guard = new AuthGuard(oidcService, new Reflector(), logger);
 
   await assert.rejects(
     guard.canActivate(createExecutionContext({ headers: {} })),
     UnauthorizedException,
   );
+});
+
+test('AuthGuard preserves malformed-request errors', async () => {
+  const oidcService = {
+    decodeRequest: async () => {
+      throw new BadRequestException('Malformed authentication request');
+    },
+  } as unknown as OidcService;
+  const guard = new AuthGuard(oidcService, new Reflector(), logger);
+
+  await assert.rejects(
+    guard.canActivate(createExecutionContext({ headers: {} })),
+    BadRequestException,
+  );
+});
+
+test('OidcService passes DPoP proof and request metadata to oidc-spa', async () => {
+  const service = new OidcService(
+    {
+      issuerUri: 'https://issuer.example.test',
+      audience: 'api',
+      trustProxy: false,
+    },
+    logger,
+  );
+  let receivedParams: ValidateAndDecodeAccessToken.Params | undefined;
+  const decodedAccessToken: BaseDecodedAccessToken = {
+    sub: 'user-1',
+    aud: 'api',
+  };
+
+  Object.assign(service, {
+    validateAndDecodeAccessTokenFn: async (params: ValidateAndDecodeAccessToken.Params) => {
+      receivedParams = params;
+      return {
+        isSuccess: true as const,
+        decodedAccessToken,
+        decodedAccessToken_original: {
+          iss: 'https://issuer.example.test',
+          sub: 'user-1',
+          aud: 'api',
+          exp: 2_000_000_000,
+          iat: 1_900_000_000,
+        },
+        accessToken: params.accessToken,
+      };
+    },
+  });
+
+  const request: AnyRequest.Unified = {
+    type: 'unified',
+    method: 'GET',
+    pseudoHeaders: {
+      ':scheme': 'https',
+      ':authority': 'api.example.test',
+      ':path': '/todos?limit=10',
+    },
+    headers: {
+      Authorization: 'DPoP access-token',
+      DPoP: 'proof-token',
+      Forwarded: undefined,
+      'X-Forwarded-Proto': undefined,
+      'X-Forwarded-Host': undefined,
+    },
+  };
+
+  assert.equal(await service.decodeRequest(request), decodedAccessToken);
+  assert.deepEqual(receivedParams, {
+    scheme: 'DPoP',
+    accessToken: 'access-token',
+    dpopProof: 'proof-token',
+    expectedHtu: 'https://api.example.test/todos',
+    expectedHtm: 'GET',
+  });
 });
 
 test('RolesGuard enforces handler roles', () => {

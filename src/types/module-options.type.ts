@@ -28,6 +28,13 @@ export interface OidcSpaModuleOptions<T extends BaseDecodedAccessToken = BaseDec
   audience: string;
 
   /**
+   * Whether forwarded headers from a trusted reverse proxy should be used to
+   * reconstruct the public request URL for DPoP validation.
+   * Default: true
+   */
+  trustProxy?: boolean;
+
+  /**
    * Zod schema for validating the decoded access token.
    * If not provided, the default schema will be used.
    */
