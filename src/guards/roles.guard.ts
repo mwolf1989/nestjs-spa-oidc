@@ -14,8 +14,8 @@ import { OIDC_LOGGER, OIDC_SPA_MODULE_OPTIONS } from '../constants';
 /**
  * Minimal request interface for platform-agnostic support
  */
-interface RequestWithUser {
-  user?: BaseDecodedAccessToken;
+interface RequestWithUser<T extends BaseDecodedAccessToken> {
+  user?: T;
 }
 
 /**
@@ -24,12 +24,14 @@ interface RequestWithUser {
  * It reads the roles metadata set by the @Roles() decorator and checks if the user has any of those roles.
  */
 @Injectable()
-export class RolesGuard implements CanActivate {
+export class RolesGuard<
+  T extends BaseDecodedAccessToken = BaseDecodedAccessToken,
+> implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     @Inject(OIDC_LOGGER) private readonly logger: OidcLogger,
     @Inject(OIDC_SPA_MODULE_OPTIONS)
-    private readonly options: OidcSpaModuleOptions,
+    private readonly options: OidcSpaModuleOptions<T>,
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -57,7 +59,7 @@ export class RolesGuard implements CanActivate {
       RolesGuard.name,
     );
 
-    const request = context.switchToHttp().getRequest<RequestWithUser>();
+    const request = context.switchToHttp().getRequest<RequestWithUser<T>>();
     const user = request.user;
 
     // If there's no user (shouldn't happen if AuthGuard is applied first), deny access

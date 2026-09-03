@@ -154,7 +154,7 @@ export class OidcSpaModule {
         ) =>
           moduleOptions.globalRolesGuard === false
             ? new NoopGuard()
-            : new RolesGuard(reflector, logger, moduleOptions),
+            : new RolesGuard<T>(reflector, logger, moduleOptions),
         inject: [OIDC_SPA_MODULE_OPTIONS, Reflector, OIDC_LOGGER],
       },
     ];
