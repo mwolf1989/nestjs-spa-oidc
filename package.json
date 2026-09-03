@@ -4,16 +4,24 @@
   "description": "A reusable NestJS module for OIDC (OpenID Connect) authentication in Single Page Applications",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "packageManager": "pnpm@10.8.0",
   "files": [
     "dist",
     "README.md"
   ],
   "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prebuild": "pnpm run clean",
     "build": "tsc",
-    "test": "node --import tsx --test \"test/**/*.test.ts\"",
-    "prepublishOnly": "pnpm run build",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "lint": "eslint \"src/**/*.ts\" --fix"
+    "test": "node --import tsx --test test/compatibility.test.ts",
+    "lint": "eslint \"{src,test}/**/*.ts\"",
+    "lint:fix": "pnpm run lint --fix",
+    "check": "pnpm run build && pnpm run lint && pnpm test",
+    "prepublishOnly": "pnpm run check",
+    "format": "prettier --write \"{src,test}/**/*.ts\""
   },
   "keywords": [
     "nestjs",
@@ -31,8 +39,8 @@
     "url": "https://github.com/mwolf1989/nestjs-spa-oidc/issues"
   },
   "peerDependencies": {
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
+    "@nestjs/common": "^11.0.0 || ^12.0.0",
+    "@nestjs/core": "^11.0.0 || ^12.0.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.0.0",
     "zod": "^4.0.0"
@@ -41,10 +49,10 @@
     "oidc-spa": "^10.2.3"
   },
   "devDependencies": {
-    "@nestjs/common": "^11.1.13",
-    "@nestjs/core": "^11.1.9",
+    "@nestjs/common": "^12.0.1",
+    "@nestjs/core": "^12.0.1",
     "@types/node": "^25.0.3",
-    "eslint": "^10.0.0",
+    "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
     "prettier": "^3.7.4",
@@ -52,11 +60,17 @@
     "rxjs": "^7.8.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
+    "typescript-eslint": "^8.69.0",
     "zod": "^4.2.1"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/mwolf1989/nestjs-spa-oidc.git"
+  },
+  "pnpm": {
+    "overrides": {
+      "brace-expansion": "5.0.9"
+    }
   },
   "publishConfig": {
     "access": "public"
