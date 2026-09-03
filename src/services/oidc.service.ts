@@ -78,14 +78,12 @@ export class OidcService<
           throw new UnauthorizedException('No authorization header provided');
         }
 
-        const bearerTokenMatch = authorizationHeaderValue.match(/^Bearer\s+(.+)$/i);
+        const [scheme, accessToken, ...additionalParts] = authorizationHeaderValue.split(' ');
 
-        if (!bearerTokenMatch) {
+        if (scheme.toLowerCase() !== 'bearer' || !accessToken || additionalParts.length > 0) {
           this.logger.debug?.('Invalid authorization header scheme', OidcService.name);
           throw new UnauthorizedException('Invalid authorization header');
         }
-
-        const accessToken = bearerTokenMatch[1];
 
         this.logger.debug?.('Verifying token signature and expiration', OidcService.name);
 
