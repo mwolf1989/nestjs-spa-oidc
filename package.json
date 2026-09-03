@@ -1,6 +1,6 @@
 {
   "name": "@mwolf1989/nestjs-spa-oidc",
-  "version": "1.0.3",
+  "version": "2.0.0",
   "description": "A reusable NestJS module for OIDC (OpenID Connect) authentication in Single Page Applications",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -65,7 +65,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mwolf1989/nestjs-spa-oidc.git"
+    "url": "git+https://github.com/mwolf1989/nestjs-spa-oidc.git"
   },
   "pnpm": {
     "overrides": {
